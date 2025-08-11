@@ -1,0 +1,20 @@
+[tools]
+terraform = "1.4.0"
+
+tflint = "0.58.1"
+
+[tasks.fmt]
+description = "Format Terraform code recursively"
+run = "terraform fmt -recursive"
+
+[tasks.fmt-check]
+description = "Check Terraform code formatting"
+run = "terraform fmt -check -diff -recursive"
+
+[tasks.tflint-init]
+description = "Initialize TFLint (download plugins)"
+run = "tflint --init"
+
+[tasks.tflint]
+description = "Run TFLint recursively"
+run = "tflint --recursive"

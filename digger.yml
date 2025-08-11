@@ -1,0 +1,92 @@
+
+telemetry: true
+auto_merge: false
+pr_locks: true
+delete_prior_comments: true
+
+projects:
+  - name: sandbox
+    dir: .
+    workspace: default
+    workflow: default
+    include_patterns: ["**/*.tf", "**/*.tfvars", "**/*.hcl", "modules/**"]
+    exclude_patterns: [".terraform/**"]
+
+workflows:
+  default:
+    env_vars:
+      state:
+        - name: TF_IN_AUTOMATION
+          value: "true"
+        - name: TF_INPUT
+          value: "false"
+      commands:
+        - name: TF_IN_AUTOMATION
+          value: "true"
+        - name: TF_INPUT
+          value: "false"
+    plan:
+      steps:
+        - init
+        - run: terraform fmt -check -diff -recursive
+        - run: terraform validate -no-color
+        - run: |
+            echo "📦 Installing conftest..."
+            LATEST_VERSION=$(wget -q -O - "https://api.github.com/repos/open-policy-agent/conftest/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | cut -c 2-)
+            ARCH=$(arch)
+            SYSTEM=$(uname)
+            wget -q "https://github.com/open-policy-agent/conftest/releases/download/v${LATEST_VERSION}/conftest_${LATEST_VERSION}_${SYSTEM}_${ARCH}.tar.gz"
+            tar xzf conftest_${LATEST_VERSION}_${SYSTEM}_${ARCH}.tar.gz
+            sudo mv conftest /usr/local/bin
+            echo "✅ Conftest installed successfully"
+        - run: |
+            echo "🔐 Checking access permissions for user: $GITHUB_ACTOR"
+            if ! echo "{\"operation\":\"plan\",\"github_user\":\"$GITHUB_ACTOR\"}" | conftest test --policy policy/access.rego -; then
+              echo "❌ Access policy validation failed"
+              exit 1
+            fi
+        - plan:
+            extra_args: ["-compact-warnings", "-out=plan.tfplan"]
+        - run: |
+            echo "📋 Validating Terraform plan against policies..."
+            # Find the actual plan file created by digger
+            PLAN_FILE=$(find . -name "*.tfplan" -type f | head -1)
+            if [ -n "$PLAN_FILE" ]; then
+              echo "Found plan file: $PLAN_FILE"
+              if ! terraform show -json "$PLAN_FILE" | conftest test --policy policy/plan/ -; then
+                echo "❌ Plan policy validation failed"
+                exit 1
+              fi
+              echo "✅ Plan policy validation passed"
+            else
+              echo "⚠️ Plan file not found, skipping plan policy check"
+            fi
+    apply:
+      steps:
+        - init
+        - run: |
+            echo "📦 Installing conftest..."
+            LATEST_VERSION=$(wget -q -O - "https://api.github.com/repos/open-policy-agent/conftest/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | cut -c 2-)
+            ARCH=$(arch)
+            SYSTEM=$(uname)
+            wget -q "https://github.com/open-policy-agent/conftest/releases/download/v${LATEST_VERSION}/conftest_${LATEST_VERSION}_${SYSTEM}_${ARCH}.tar.gz"
+            tar xzf conftest_${LATEST_VERSION}_${SYSTEM}_${ARCH}.tar.gz
+            sudo mv conftest /usr/local/bin
+            echo "✅ Conftest installed successfully"
+        - run: |
+            echo "🔐 Checking apply permissions for user: $GITHUB_ACTOR"
+            if ! echo "{\"operation\":\"apply\",\"github_user\":\"$GITHUB_ACTOR\"}" | conftest test --policy policy/access.rego -; then
+              echo "❌ Apply access denied"
+              exit 1
+            fi
+        - run: |
+            echo "⚠️ This is a demo environment - Apply operations are logged"
+            echo "User: $GITHUB_ACTOR, Time: $(date), Repository: $GITHUB_REPOSITORY"
+        - apply:
+            extra_args: ["-auto-approve", "-compact-warnings"]
+    workflow_configuration:
+      on_pull_request_pushed: ["digger plan"]
+      on_pull_request_closed: ["digger unlock"]
+      on_commit_to_default: ["digger unlock"]
+
+

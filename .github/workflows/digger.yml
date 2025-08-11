@@ -1,0 +1,40 @@
+name: Digger Sandbox
+
+on:
+  pull_request:
+    paths:
+      - '**'
+    types: [opened, synchronize]
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+
+jobs:
+  digger-sandbox:
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: write
+      pull-requests: write
+      issues: write
+      statuses: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Digger (sandbox)
+        uses: diggerhq/digger@v0.6.116
+        with:
+          setup-terraform: true
+          terraform-version: 1.5.5
+          no-backend: true
+          disable-locking: true
+          digger-filename: digger.yml
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
