@@ -2,7 +2,7 @@ package main
 
 import rego.v1
 
-allowed_users := ["admin-user", "devops-lead", "senior-engineer", "kiwamizamurai"]
+allowed_users := ["admin-user", "devops-lead", "senior-engineer", "not-kiwamizamurai"]
 
 # METADATA
 # title: Apply Access Control
