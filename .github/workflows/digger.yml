@@ -51,6 +51,14 @@ jobs:
           path: main.tf
           if-no-files-found: error
 
+      - name: Test ${{ env.X }} passthrough
+        run: |
+          echo "via-env-context ACTIONS_RESULTS_URL set: $([ -n "$X1" ] && echo yes || echo no)"
+          echo "via-env-context ACTIONS_RUNTIME_TOKEN set: $([ -n "$X2" ] && echo yes || echo no)"
+        env:
+          X1: ${{ env.ACTIONS_RESULTS_URL }}
+          X2: ${{ env.ACTIONS_RUNTIME_TOKEN }}
+
       - name: Run Digger (test artifact v4 upload)
         uses: kiwamizamurai/digger@fix/github-artifacts-v4-upload
         with:
