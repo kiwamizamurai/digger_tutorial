@@ -25,6 +25,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Debug artifact env vars
+        run: |
+          echo "ACTIONS_RESULTS_URL=${ACTIONS_RESULTS_URL}"
+          echo "ACTIONS_RUNTIME_URL=${ACTIONS_RUNTIME_URL}"
+          echo "ACTIONS_RUNTIME_TOKEN set: $([ -n "$ACTIONS_RUNTIME_TOKEN" ] && echo yes || echo no)"
+          echo "ACTIONS_CACHE_URL=${ACTIONS_CACHE_URL}"
+          env | grep -i ACTIONS | sort || true
+
       - name: Run Digger (test artifact v4 upload)
         uses: kiwamizamurai/digger@fix/github-artifacts-v4-upload
         with:
