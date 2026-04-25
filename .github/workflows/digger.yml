@@ -25,14 +25,15 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Run Digger (sandbox)
-        uses: diggerhq/digger@v0.6.116
+      - name: Run Digger (test artifact v4 upload)
+        uses: kiwamizamurai/digger@fix/github-artifacts-v4-upload
         with:
           setup-terraform: true
           terraform-version: 1.5.5
           no-backend: true
           disable-locking: true
           digger-filename: digger.yml
+          upload-plan-destination: github
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
